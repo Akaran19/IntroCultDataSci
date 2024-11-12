@@ -1,0 +1,234 @@
+---
+title: "Introduction to Cultural Data Science: Assignment 2"
+author: "Akaran Sivakumar"
+output: html_document
+date: "2024-11-12"
+---
+
+# Part 1
+
+
+## Loading in data and packages
+
+Load  the  'divorce_margarine'  dataset  from  the  'dslabs'  package.  Investigate  the  correlation 
+between  margarine  consumption  and  divorce  rates  in  Maine.  Would  an  increase  in  the 
+preference for margarine lead to skyrocketing divorce rates? 
+
+```{r}
+
+# install.packages('dslabs') # for data
+# Importing necessary libraries
+library(dslabs)
+library(tidyverse)
+
+```
+
+```{r}
+# Loading the dataset
+# Assigning the divorce_margarine dataset to a dataframe called df
+df <- dslabs::divorce_margarine
+
+# Checking the structure of the dataset to understand its contents
+str(df)
+```
+## Inspection of data
+
+```{r}
+# Viewing the 'divorce_rate_maine' column in the dataframe
+df$divorce_rate_maine
+
+# Plotting the relationship between margarine consumption per capita and divorce rate in Maine
+ggplot(data = df, 
+       aes(x = margarine_consumption_per_capita, 
+           y = divorce_rate_maine)) +
+  geom_point() +  # Scatter plot to show data points
+  labs(
+    title = "Relationship Between Margarine Consumption and Divorce Rate in Maine",
+    x = "Margarine Consumption per Capita",
+    y = "Divorce Rate in Maine"
+  ) + 
+  theme_minimal()  # Minimal theme for a cleaner look
+```
+## Correlation Test
+
+```{r}
+# Conducting a correlation test between divorce rate in Maine and margarine consumption per capita
+cor.test(x = df$divorce_rate_maine, y = df$margarine_consumption_per_capita)
+```
+
+## Relationship plotting
+
+```{r}
+# Plotting the relationship between margarine consumption per capita and divorce rate in Maine
+ggplot(data = df, 
+       aes(x = margarine_consumption_per_capita, 
+           y = divorce_rate_maine)) +
+  geom_point() +  # Scatter plot for data points
+  geom_smooth(method = "lm", se = TRUE) +  # Adding a linear regression line with confidence interval
+  ggtitle("Relationship Between Margarine Consumption and Divorce Rate in Maine") +  # Descriptive title
+  xlab("Margarine Consumption per Capita") +  # Label for x-axis
+  ylab("Divorce Rate in Maine") +  # Label for y-axis
+  theme_minimal()  # Minimal theme for cleaner appearance
+```
+
+**Answer: Even though these two variables are strongly correlated, they are not causally linked. Correlation means that two things tend to happen together, but it does not imply that one causes the other. In this case, the relationship is likely coincidental or due to other underlying factors, not because one variable affects the other. So, no, an increase in the preference for margarine will not lead to an increase in divorce rates.** 
+
+# Part 2
+
+
+## Loading in data
+
+Load the ‘GSSvocab’ dataset from the ‘car’ package. This dataset contains people’s scores on 
+an English vocabulary test and includes demographic information.  
+```{r}
+# Load the 'car' package 
+library(car)
+
+# Loading the GSSvocab dataset
+data("GSSvocab")  # Loads the dataset into the environment
+
+# Assigning the GSSvocab dataset to the variable 'data'
+data <- GSSvocab
+
+```
+
+
+## Preprocessing
+
+Filter for the year 1978 and remove rows with missing values (the function na.exclude() is one 
+way to do this – check out the documentation!). 
+```{r}
+# Filtering the dataset to include only rows where the year is 1978
+filt_data <- filter(data, year == "1978")
+
+# Removing any rows with missing (NA) values from the filtered dataset
+filt_data <- na.omit(filt_data)
+```
+
+
+## Education level and Score on vocabulary test
+
+Is a person’s  score on the  vocabulary test  (‘vocab’)  significantly impacted by their level  of 
+education (‘educ’)? Visualize the relationship in a plot and build a model. Briefly explain the 
+results. 
+```{r}
+# Plotting the relationship between education level and vocabulary score for the filtered dataset
+ggplot(filt_data, aes(x = educ, y = vocab)) +
+  geom_jitter(width = 0.3, height = 0.3, alpha = 0.6) +  # Adds jittered points for better visibility of overlapping points
+  geom_smooth(method = "lm", se = TRUE) +  # Adds a linear regression line with confidence interval shading
+  labs(
+    title = "Relationship between Education Level and Vocabulary Score",
+    x = "Education Level",
+    y = "Vocabulary Score"
+  ) +
+  theme_minimal()  # Minimal theme for a clean look
+```
+```{r}
+# Step 2: Building a linear model to assess the relationship between education level and vocabulary score
+model <- lm(vocab ~ educ, data = data)  # Linear regression with 'vocab' as the dependent variable and 'educ' as the predictor
+
+# Step 3: Summarize the model to check the significance
+summary(model)
+
+```
+
+**Answer: The model suggests a statistically significant positive relationship between education level and vocabulary score, with each additional year of education increasing vocabulary score by approximately 0.33 points. The model explains about 22.83% of the variability in vocabulary scores, indicating that while education has a meaningful impact, other factors also contribute to vocabulary knowledge.**
+
+
+## The impact of being Native-Born
+
+Whether a person is the native of an English-speaking country (‘nativeBorn’) could potentially 
+have an impact on the size of their vocabulary. Visualize the relationship and add the predictor 
+to the model. Briefly explain the results. 
+
+```{r}
+# Filtering out rows with missing values in `filt_data` to create a cleaned dataset
+data_clean <- na.omit(filt_data)
+
+# Plotting the relationship between education level and vocabulary score, grouped by native language status
+ggplot(data_clean, aes(x = educ, y = vocab, color = factor(nativeBorn))) +
+  # geom_point(alpha = 0.5) +  # Optionally add points with transparency
+  geom_smooth(method = "lm") +  # Adds a linear regression line for each group
+  labs(
+    title = "Vocabulary Score vs Education Level, Grouped by Native Language",
+    x = "Education Level",
+    y = "Vocabulary Score",
+    color = "Native English Speaker"  # Label for the legend
+  ) +
+  theme_minimal()  # Minimal theme for a clean, modern look
+
+# Counting the number of native and non-native born individuals
+# This provides an idea of the data balance between the groups
+data_clean %>%
+  count(nativeBorn)
+
+# Plotting histograms of vocabulary scores, faceted by native language status
+ggplot(data_clean, aes(x = vocab)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black", alpha = 0.7) +  # Histogram with customized binwidth
+  facet_wrap(~ nativeBorn, labeller = as_labeller(c("0" = "Non-Native", "1" = "Native"))) +  # Facet by native status with labels
+  labs(
+    title = "Distribution of Vocabulary Scores by Native Status",
+    x = "Vocabulary Score",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+# Step 2: Updating the linear model to include `nativeBorn` as an additional predictor
+# This tests if native language status has a significant effect on vocabulary score
+model2 <- lm(vocab ~ educ + nativeBorn, data = data_clean)
+
+# Step 3: Summarizing the updated model to review the effect of `nativeBorn` and `educ` on `vocab`
+summary(model2)
+
+
+```
+
+**Answer: The model indicates that both education level and being a native English speaker significantly impact vocabulary scores. Each additional unit of education is associated with a 0.39-point increase in vocabulary score, while native English speakers score, on average, 0.65 points higher than non-native speakers, controlling for education. However, the data is notably imbalanced, with 1,388 native-born individuals and only 89 non-native-born individuals. This overrepresentation of native-born speakers could introduce bias into the model, meaning that the effect of nativeBorn may be less reliable and should be interpreted with caution. The model explains about 29.31% of the variability in vocabulary scores, highlighting that these predictors are meaningful but that other unaccounted factors also play a role.**
+
+
+## Possible confounders?
+
+Does  a  person’s  level  of  education  depend  on  whether  they  are  a  native  of  the  country? 
+Visualize the relationship. Do you think it makes sense to add the relationship as an interaction 
+term? Try creating the model and briefly explain the results. 
+
+```{r}
+# Faceted histogram of education level by native status
+ggplot(data_clean, aes(x = educ)) +
+  geom_histogram(bins = 15, fill = "skyblue", color = "black", alpha = 0.7) +
+  facet_wrap(~nativeBorn, labeller = labeller(nativeBorn = c("no" = "Non-Native", "yes" = "Native"))) +
+  labs(title = "Histogram of Education Level by Native Status",
+       x = "Education Level",
+       y = "Count") +
+  theme_minimal()
+```
+
+**Answer: Given the small number of observations in the Non-Native category, I hypothesize that including the interaction term will have a minimal effect, as there is not enough data for the model to effectively learn from this group. **
+
+Which model performs best? 
+
+```{r}
+# Model without interaction
+model_no_interaction <- lm(vocab ~ educ + nativeBorn, data = data_clean)
+
+# Model with interaction
+model_with_interaction <- lm(vocab ~ educ * nativeBorn, data = data_clean)
+
+# Summaries to examine results
+summary(model_no_interaction)
+summary(model_with_interaction)
+
+
+```
+```{r}
+# Compare models using AIC
+AIC(model_no_interaction, model_with_interaction)
+```
+
+**Answer:** The interaction model (vocab ~ educ $\cdot$ nativeBorn) does not show a statistically significant interaction effect between education and native status. This indicates that the impact of education on vocabulary score does not significantly differ between native and non-native speakers. Additionally, the R-squared and adjusted R-squared values are nearly identical in both models, suggesting that adding the interaction term does not improve the model’s explanatory power.
+
+Based on this, the model without the interaction term performs best as it provides a similar fit with fewer parameters, maintaining simplicity without losing explanatory power.
+
+
+When creating plots, try to play around with the options of ggplot2 – add titles and axis labels, 
+and consider using colours. 
